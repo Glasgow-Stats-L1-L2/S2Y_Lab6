@@ -1,0 +1,15 @@
+eq:TreesMLR
+fig:TreesPlot1
+fig:TreesRes
+welcome-to-s2y-lab-6
+introduction
+the-summary-function-for-regression-models
+example-1-cherry-trees
+exploratory-analysis
+statistical-analysis
+regression-output
+hypothesis-testing
+confidence-interval-for-mathbfbtop-boldsymbolbeta
+confidence-interval-for-the-population-mean-response-and-prediction-interval-for-a-future-response
+exercise-1-grades
+exercise-2-body-fat

@@ -1,0 +1,75 @@
+# Exercise 1: Grades
+
+In Lab 1, we looked at the `Grades` dataset from the `PASWR` package, which records the first-semester college GPA and SAT scores for 200 freshmen. The question of interest is to check whether there is a linear relationship between GPA and SAT scores. 
+To open the dataset, type:
+```{r message=FALSE}
+library(PASWR)
+GRADES <- Grades
+```
+
+
+**QUESTION**
+
+1. Fit the simple linear regression model on this data again and check if the model assumptions hold true. 
+
+`r hide("Solution")`
+```{r, echo=-2}
+Model2 <- lm(gpa~sat, data=GRADES)
+par(mfrow=c(1,2))
+plot(rstandard(Model2) ~ fitted(Model2))
+abline(h=0, lty=3)
+qqnorm(rstandard(Model2))
+qqline(rstandard(Model2))
+```
+
+In the standardised residuals versus fitted values plot, we see that the points are fairly evenly scattered above and below the zero line, which suggests it is reasonable to assume that the random errors have mean zero. The vertical variation of the points seems to be small for small and large fitted values and large for fitted values in the middle. This raises slight concerns on constant variability, though we should also take into account that there are less observations in both ends. 
+
+The normal probability plot (Q-Q plot) suggests that points roughly lie on diagonal line, though there is some deviation at the extremes. We may conclude that the normality assumption holds with some caution. 
+`r unhide()`
+
+2. Which of the following comments on the adequacy of the model seems appropriate? 
+
+`r longmcq(c(answer="Based on R2, 56.12% of the variation in GPA scores is accounted for by the simple linear regression model with SAT scores as the predictor, and hence the model provides a moderate fit to the data.","Based on adjusted R2, 55.89% of the variation in GPA scores is accounted for by the simple linear regression model with SAT scores as the predictor, and hence the model provides a moderate fit to the data."))`
+
+<br>
+3. Without using the `summary()` command, calculate the values of `A` and `B` in the following regression output table. 
+
+               Estimate   Std. Error   t value  
+-------------  --------   ----------   -------
+(Intercept)      -1.192      0.22245         A 
+sat               0.003            B    15.912 
+
+A = `r fitb(c(-5.358508,-5.35851,-5.3585,-5.359,-5.36,-5.4))`
+B = `r fitb(c(0.000188537,0.00018854,0.0001885,0.000189,0.00019,0.0002))`
+
+<br>
+4. Construct a 95% confidence interval for the coefficient of `sat`. Comment on the interval. 
+
+`r hide("Solution")`
+We could either calculate manually based on the output from `summary()` or use `confint()`.
+```{r eval=FALSE}
+summary(Model2)
+0.0030943 + qt(0.975,200-2)*0.0001945
+0.0030943 - qt(0.975,200-2)*0.0001945
+confint(Model2)
+```
+The 95% confidence interval for the coefficient of `sat` is (0.0027,0.0035), indicating that the SAT scores makes a statistically significant contribution in explaining the GPA scores.  
+`r unhide()`
+
+<br>
+5. Which of the following comments on the $p$-value for the predictor `sat` is appropriate?
+`r longmcq(c(answer="The $p$-value is less than 0.05, so we reject the null hypothesis that the coefficient for SAT equals to zero and conclude that SAT is useful in predicting GPA scores.","The $p$-value is less than 0.05, so we fail to reject the null hypothesis that the coefficient for SAT equals to zero and conclude that SAT is not useful in predicting GPA scores.","The $p$-value is larger than 0.05, so we reject the null hypothesis that the coefficient for SAT equals to zero and conclude that SAT is useful in predicting GPA scores.","The $p$-value is larger than 0.05, so we fail to reject the null hypothesis that the coefficient for SAT equals to zero and conclude that SAT is not useful in predicting GPA scores."))`
+
+
+
+
+<!-- `r hide("Solution")` -->
+<!-- Suppose the simple linear regression model is given by: -->
+<!-- <p align='center'> -->
+<!-- `gpa` $= \alpha + \beta $`sat` -->
+<!-- </p> -->
+<!-- The hypothesis being test is: -->
+<!-- $$H_0: \beta = 0 \quad \text{vs.} \quad H_1: \beta \neq 0 $$ -->
+<!-- The $p$-value associated with `sat` is `< 2e-16`, indicating that  -->
+<!-- `r unhide()` -->
+

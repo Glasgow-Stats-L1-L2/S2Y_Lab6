@@ -1,0 +1,163 @@
+---
+title: |
+    | S2Y Lab 6
+    | Interval estimation and hypothesis testing
+site: bookdown::bookdown_site
+output: bookdown::gitbook
+documentclass: book
+biblio-style: apalike
+link-citations: yes
+---
+
+```{r setup, include = FALSE}
+library(webexercises)
+library(tinytex)
+library(dplyr)
+library(knitr)
+knitr::opts_chunk$set(echo=TRUE, eval=TRUE)
+```
+
+
+```{r include=FALSE, echo=FALSE}
+knitr::write_bib(c(
+  .packages(), 'bookdown', 'knitr', 'rmarkdown'
+), 'packages.bib')
+```
+
+
+# Welcome to S2Y Lab 6
+
+Intended Learning Outcomes:
+
+- use various summary statistics and `R` output to compute confidence and prediction intervals;
+
+* use `R` to produce hypothesis tests for parameters in a linear model;
+* interpret hypothesis tests and confidence and prediction intervals.
+
+## Introduction
+
+In the lectures we learned about the general formulae for the construction of: 
+
+(i) a confidence interval for a linear combination of the model parameters ($\mathbf{b}^\top\boldsymbol{\beta}$) with confidence level $c$
+
+\[\mathbf{b}^\top\boldsymbol{\hat{\beta}}\pm t\left(n-p; \frac{1+c}{2}\right)\sqrt{\frac{\text{RSS}}{n-p}\mathbf{b}^\top(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{b}};\]
+
+
+(ii) a prediction interval for a future value of the response variable for particular values of the predictor variables with confidence $c$
+\[\mathbf{b}^\top\boldsymbol{\hat{\beta}}\pm t\left(n-p;
+\frac{1+c}{2}\right)\sqrt{\frac{\text{RSS}}{n-p}\left(1+\mathbf{b}^\top(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{b}\right)}\]
+
+In this practical, it will be demonstrated how these intervals can be computed using `R`. The emphasis will be on the computation, application and interpretation of confidence and prediction intervals. We will also consider hypothesis testing for parameters in a linear model.
+
+**QUESTION**: The figures below show the scatterplot of some observations (black circles), the best fitted line (black line), a 95% confidence interval (red dashed line), and a 95% prediction interval (blue dotted line). Which of the figures shows the correct relationship between confidence interval and prediction interval?
+```{r echo=FALSE, fig.align='center',fig.width=7,fig.height=7}
+# Demonstration of confidence interval and prediction interval
+set.seed(1)
+n <- 20
+x <- runif(n,-10,10)
+y <- x + rnorm(n,sd=1.5)
+Model1 <- lm(y~x)
+
+New_data <- data.frame(x = seq(-10,10,by=0.01))
+CI <- predict(Model1, int="c", New_data)
+New_data$CI_lwd <- CI[,2]
+New_data$CI_upr <- CI[,3]
+PI <- predict(Model1, int="p", New_data)
+New_data$PI_lwd <- PI[,2]
+New_data$PI_upr <- PI[,3]
+
+par(mfrow=c(2,2),mar=c(4,4,2,1))
+#1
+plot(y~x,pch=16,main="(A)")
+abline(Model1)
+lines(New_data[,c(1,2)], col="red",  lty=2, lwd=2)
+lines(New_data[,c(1,3)], col="red",  lty=2, lwd=2)
+lines(New_data[,c(1,4)], col="blue", lty=3, lwd=2)
+lines(New_data[,c(1,5)], col="blue", lty=3, lwd=2)
+legend("topleft", legend=c("CI","PI"), col=c("red","blue"), lty=c(2,3),lwd=2)
+
+#2
+plot(y~x,pch=16,main="(B)")
+abline(Model1)
+lines(New_data[,c(1,2)], col="blue",  lty=3, lwd=2)
+lines(New_data[,c(1,3)], col="blue",  lty=3, lwd=2)
+lines(New_data[,c(1,4)], col="red", lty=2, lwd=2)
+lines(New_data[,c(1,5)], col="red", lty=2, lwd=2)
+legend("topleft", legend=c("CI","PI"), col=c("red","blue"), lty=c(2,3),lwd=2)
+
+#3
+plot(y~x,pch=16,main="(C)")
+abline(Model1)
+lines(New_data[,1],New_data[,2]+0.5, col="red",  lty=2, lwd=2)
+lines(New_data[,1],New_data[,3]+0.5, col="red",  lty=2, lwd=2)
+lines(New_data[,1],New_data[,4]+0.5, col="blue", lty=3, lwd=2)
+lines(New_data[,1],New_data[,5]+0.5, col="blue", lty=3, lwd=2)
+legend("topleft", legend=c("CI","PI"), col=c("red","blue"), lty=c(2,3),lwd=2)
+
+#4
+plot(y~x,pch=16,main="(D)")
+abline(Model1)
+lines(New_data[,1],New_data[,2]+0.5, col="blue",  lty=3, lwd=2)
+lines(New_data[,1],New_data[,3]+0.5, col="blue",  lty=3, lwd=2)
+lines(New_data[,1],New_data[,4]+0.5, col="red", lty=2, lwd=2)
+lines(New_data[,1],New_data[,5]+0.5, col="red", lty=2, lwd=2)
+legend("topleft", legend=c("CI","PI"), col=c("red","blue"), lty=c(2,3),lwd=2)
+```
+
+`r longmcq(c(answer="A","B","C","D"))`
+
+`r hide("Solution")`
+The correct answer is option (A). Here we use two properties of confidence interval and prediction interval:
+
+1. Confidence interval and prediction interval are centred at the same best fitting line.
+2. For the same confidence level, prediction interval is wider than confidence interval.
+
+In addition, looking at the figures, you may notice another property that the width of both interval is narrowest at $x=\bar x$.
+`r unhide()`
+
+### The `summary()` function for regression models
+
+Before discussing confidence and prediction intervals, let's first revise the output of `summary()` function for regression models.
+
+Recall the model we created the Sugar in Potatoes example, where we try to predict the glucose content of potatoes from the storage time.
+```{r}
+potatoes <- read.csv("potatoesstorage.csv")
+Model1 <- lm(Glucose ~ Weeks + I(Weeks^2), data=potatoes)
+```
+
+We apply the summary function, which gives the following output:
+```{r}
+summary(Model1)
+```
+As you can see from this output there are a few different elements displayed. A brief description is stated below:
+
+**Call**: This shows the formula that we used in our regression model.
+
+**Residuals**: This lists the five-number summary of the residuals from our regression model.
+
+**Coefficients**: This shows us a summary of estimated coefficients of the regression model.
+
+Within this section the column headers are:
+
+* **Estimate**: The estimated parameter. These can be used to write down the fitted regression model.
+
+* **Std. Error**: This is the estimated standard error of the parameter estimate.
+
+* **t value**: This is the $t$-statistic for the parameter, calculated as `Estimate` / `Std. Error`.
+
+* **Pr(>|t|)**: This is the $p$-value that corresponds to the $t$-statistic, i.e. $Pr(X>|t|)$ for $X \sim t(n-p)$, where $t$ is the `t value` computed above, $n$ is the sample size, and $p$ is the number of parameters.
+
+**Residual standard error**: This is the square root of residual mean squares, which can be linked to the output from the `anova()` table (`Residuals Mean Sq`).
+
+**Multiple R-squared**: This gives coefficient of determination, $R^2$.
+
+**Adjusted R-squared**: This gives the adjusted coefficient of determination, $R^2$ (adj), which adjusts for the number of predictors in the model.
+
+**F-statistic**: The $F$-statistic is the test statistic for the hypothesis test
+<p align='center'>
+H$_0$: all $p-1$ parameters $= 0$ versus H$_1$: at least one parameter $\neq 0$
+</p>
+
+**p-value**: $p$-value corresponding to the $F$-test, i.e. $Pr(X>|F|)$ for $X \sim F(\text{DF}_\text{model},\text{DF}_\text{residual})$.
+
+
